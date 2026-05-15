@@ -206,6 +206,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, updateDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+        // Konfigurasi dari Firebase milik Anda
         const firebaseConfig = {
           apiKey: "AIzaSyC1vuIoVw7ZOUyd9gD7MRcQwiy7-sqLaAE",
           authDomain: "monev-rijal-ynbdg.firebaseapp.com",
@@ -215,12 +216,11 @@
           appId: "1:805465667448:web:c8ef9258aae0d8c0cffa8d"
         };
         
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
+        // ID Unik untuk folder database (sangat penting agar sistem tahu letak penyimpanan)
+        const appId = "produksi-rijal-ynbdg";
 
         let app, auth, db;
         try {
-            // Mencegah aplikasi error saat dijalankan di GitHub Pages tanpa konfigurasi Firebase
             if (Object.keys(firebaseConfig).length > 0) {
                 app = initializeApp(firebaseConfig);
                 auth = getAuth(app);
@@ -393,7 +393,7 @@
 
         // Firebase Listeners & Render
         async function initAuth() {
-            if (!auth) return; // Cegah error jika koneksi Firebase tidak ada
+            if (!auth) return;
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
@@ -407,7 +407,7 @@
         }
 
         function listenToFirestore() {
-            if (!currentUser || !db) return; // Cegah error jika database tidak ada
+            if (!currentUser || !db) return;
 
             const membersRef = collection(db, 'artifacts', appId, 'public', 'data', 'members');
             onSnapshot(membersRef, (snap) => {
