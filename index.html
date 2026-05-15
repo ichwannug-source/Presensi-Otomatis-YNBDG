@@ -209,9 +209,19 @@
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+        let app, auth, db;
+        try {
+            // Mencegah aplikasi error saat dijalankan di GitHub Pages tanpa konfigurasi Firebase
+            if (Object.keys(firebaseConfig).length > 0) {
+                app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+            } else {
+                console.warn("Konfigurasi Firebase belum ada. Menjalankan UI dalam mode offline.");
+            }
+        } catch (error) {
+            console.error("Gagal inisialisasi Firebase:", error);
+        }
 
         const ACTIVITIES = [
             { id: 'act1', name: 'Narasumber', points: 9 },
@@ -374,6 +384,7 @@
 
         // Firebase Listeners & Render
         async function initAuth() {
+            if (!auth) return; // Cegah error jika koneksi Firebase tidak ada
             try {
                 if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                     await signInWithCustomToken(auth, __initial_auth_token);
@@ -387,7 +398,7 @@
         }
 
         function listenToFirestore() {
-            if (!currentUser) return;
+            if (!currentUser || !db) return; // Cegah error jika database tidak ada
 
             const membersRef = collection(db, 'artifacts', appId, 'public', 'data', 'members');
             onSnapshot(membersRef, (snap) => {
@@ -529,8 +540,8 @@
             const btn = document.getElementById('btn-submit');
             btn.className = "w-full py-4 font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 bg-slate-200 text-slate-400 cursor-not-allowed shadow-none";
 
-            if (!currentUser) {
-                showNotif('error', 'Koneksi Cloud terputus.');
+            if (!currentUser || !db) {
+                showNotif('error', 'Koneksi Cloud tidak tersedia. Harap isi konfigurasi Firebase.');
             } else {
                 const activity = ACTIVITIES.find(a => a.id === activityId);
                 const member = membersData.find(m => m.id === memberId);
@@ -570,17 +581,22 @@
 
         // Boot
         initUI();
-        initAuth().then(() => {
-            onAuthStateChanged(auth, (user) => {
-                currentUser = user;
-                if (user) {
-                    updateCloudStatus('connected');
-                    listenToFirestore();
-                } else {
-                    updateCloudStatus('error');
-                }
+        if (auth) {
+            initAuth().then(() => {
+                onAuthStateChanged(auth, (user) => {
+                    currentUser = user;
+                    if (user) {
+                        updateCloudStatus('connected');
+                        listenToFirestore();
+                    } else {
+                        updateCloudStatus('error');
+                    }
+                });
             });
-        });
+        } else {
+            updateCloudStatus('error');
+            document.getElementById('cloud-text').innerText = "Mode Offline (No Config)";
+        }
 
     </script>
 </body>
