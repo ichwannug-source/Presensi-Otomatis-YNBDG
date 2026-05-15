@@ -348,46 +348,73 @@
         });
 
         window.handleCSVImport = function() {
-            const file = document.getElementById('csv-file').files[0];
-            const reader = new FileReader();
-
-            reader.onload = async function(e) {
-                const text = e.target.result;
-                const rows = text.split('\n').filter(row => row.trim() !== '');
-                const headers = rows[0].split(',').map(h => h.trim().replace(/"/g, ''));
-                
-                const btn = document.getElementById('btn-import');
-                btn.innerText = 'Mengunggah...';
-                btn.disabled = true;
-
-                for (let i = 1; i < rows.length; i++) {
-                    const values = rows[i].split(',').map(v => v.trim().replace(/"/g, ''));
-                    const entry = {};
-                    headers.forEach((header, index) => {
-                        entry[header] = values[index];
-                    });
-
-                    if (entry['Nama Lengkap']) {
-                        const memberId = entry['No.'] || `M${i.toString().padStart(3, '0')}`;
-                        const isDivisi = (entry['Posisi'] || '').toLowerCase().includes('divisi');
+                    const file = document.getElementById('csv-file').files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+        
+                    reader.onload = async function(e) {
+                        const text = e.target.result;
+                        const rows = text.split('\n').filter(row => row.trim() !== '');
                         
-                        const memberDoc = {
-                            id: memberId,
-                            name: entry['Nama Lengkap'],
-                            status: isDivisi ? 'Divisi' : 'Non-Divisi',
-                            points: 0,
-                            metadata: entry // Simpan semua kolom lain di metadata
-                        };
+                        if (rows.length < 2) {
+                            alert("File CSV kosong atau format tidak valid.");
+                            return;
+                        }
+        
+                        // Deteksi otomatis separator (koma atau titik koma)
+                        const separator = rows[0].includes(';') ? ';' : ',';
+                        const headers = rows[0].split(separator).map(h => h.trim().replace(/"/g, ''));
+                        
+                        const btn = document.getElementById('btn-import');
+                        btn.innerText = 'Mengunggah...';
+                        btn.disabled = true;
+        
+                        let successCount = 0;
+        
+                        for (let i = 1; i < rows.length; i++) {
+                            const values = rows[i].split(separator).map(v => v.trim().replace(/"/g, ''));
+                            const entry = {};
+                            headers.forEach((header, index) => {
+                                entry[header] = values[index];
+                            });
+        
+                            // Cari kolom nama dengan lebih fleksibel (ignoring case)
+                            const nameKey = headers.find(h => h.toLowerCase().includes('nama'));
+                            const posisiKey = headers.find(h => h.toLowerCase().includes('posisi') || h.toLowerCase().includes('divisi'));
+                            const noKey = headers.find(h => h.toLowerCase() === 'no.' || h.toLowerCase() === 'no');
+        
+                            if (nameKey && entry[nameKey]) {
+                                const memberId = entry[noKey] || `M${i.toString().padStart(3, '0')}`;
+                                const isDivisi = (entry[posisiKey] || '').toLowerCase().includes('divisi');
+                                
+                                const memberDoc = {
+                                    id: memberId,
+                                    name: entry[nameKey],
+                                    status: isDivisi ? 'Divisi' : 'Non-Divisi',
+                                    points: 0,
+                                    metadata: entry // Menyimpan seluruh baris data asli
+                                };
+        
+                                try {
+                                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', memberId), memberDoc);
+                                    successCount++;
+                                } catch (err) {
+                                    console.error("Gagal upload baris " + i, err);
+                                }
+                            }
+                        }
+                        
+                        alert(`Berhasil mengimpor ${successCount} anggota ke Cloud!`);
+                        btn.innerText = 'Upload Selesai';
+                        
+                        // Paksa pembaruan UI
+                        setTimeout(() => {
+                            switchTab('leaderboard');
+                        }, 500);
+                    };
 
-                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'members', memberId), memberDoc);
-                    }
-                }
-                
-                alert('Berhasil mengimpor data anggota ke Cloud!');
-                btn.innerText = 'Upload Selesai';
-                switchTab('leaderboard');
-            };
-
+            reader.readAsText(file);
+        };
             reader.readAsText(file);
         };
 
