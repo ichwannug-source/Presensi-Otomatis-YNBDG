@@ -206,8 +206,17 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, updateDoc, onSnapshot, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = {
+          apiKey: "AIzaSyC1vuIoVw7ZOUyd9gD7MRcQwiy7-sqLaAE",
+          authDomain: "monev-rijal-ynbdg.firebaseapp.com",
+          projectId: "monev-rijal-ynbdg",
+          storageBucket: "monev-rijal-ynbdg.firebasestorage.app",
+          messagingSenderId: "805465667448",
+          appId: "1:805465667448:web:c8ef9258aae0d8c0cffa8d"
+        };
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
 
         let app, auth, db;
         try {
